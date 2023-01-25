@@ -42,7 +42,7 @@ SOURCE_FILES = $(shell find internal public cmd -type f)
 TEMPLATE_FILES = $(shell find template -path template/test -prune -o -type f -name "*.yaml")
 
 $(PATHINSTBIN)/%: $(SOURCE_FILES) $(TEMPLATE_FILES)
-	@go build $(GO_FLAGS) -tags "$(TAGS)" -ldflags "$(LD_FLAGS) $(VER_FLAGS)" -o $@ ./cmd/$*
+	@go build -cover $(GO_FLAGS) -tags "$(TAGS)" -ldflags "$(LD_FLAGS) $(VER_FLAGS)" -o $@ ./cmd/$*
 
 $(APPS): %: $(PATHINSTBIN)/%
 
@@ -91,7 +91,7 @@ lint:
 	@golangci-lint -j $(GOMAXPROCS) run --timeout 5m cmd/... internal/... public/...
 
 test: $(APPS)
-	@go test $(GO_FLAGS) -ldflags "$(LD_FLAGS)" -timeout 3m ./...
+	@go test $(GO_FLAGS) -ldflags "$(LD_FLAGS)" -cover -timeout 3m ./...
 	@$(PATHINSTBIN)/benthos template lint ./template/...
 	@$(PATHINSTBIN)/benthos test ./config/test/...
 
@@ -100,7 +100,7 @@ test-race: $(APPS)
 
 test-integration:
 	$(warning WARNING! Running the integration tests in their entirety consumes a huge amount of computing resources and is likely to time out on most machines. It's recommended that you instead run the integration suite for connectors you are working selectively with `go test -run 'TestIntegration/kafka' ./...` and so on.)
-	@go test $(GO_FLAGS) -ldflags "$(LD_FLAGS)" -run "^Test.*Integration.*$$" -timeout 5m ./...
+	@go test $(GO_FLAGS) -ldflags "$(LD_FLAGS)" -cover -run "^Test.*Integration.*$$" -timeout 5m ./...
 
 clean:
 	rm -rf $(PATHINSTBIN)
