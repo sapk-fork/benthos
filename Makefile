@@ -36,13 +36,13 @@ install: $(APPS)
 	@cp $(PATHINSTBIN)/* $(INSTALL_DIR)/
 
 deps:
-	@go mod tidy
+	@go1.20rc3 mod tidy
 
 SOURCE_FILES = $(shell find internal public cmd -type f)
 TEMPLATE_FILES = $(shell find template -path template/test -prune -o -type f -name "*.yaml")
 
 $(PATHINSTBIN)/%: $(SOURCE_FILES) $(TEMPLATE_FILES)
-	@go build -cover $(GO_FLAGS) -tags "$(TAGS)" -ldflags "$(LD_FLAGS) $(VER_FLAGS)" -o $@ ./cmd/$*
+	@go1.20rc3 build -cover $(GO_FLAGS) -tags "$(TAGS)" -ldflags "$(LD_FLAGS) $(VER_FLAGS)" -o $@ ./cmd/$*
 
 $(APPS): %: $(PATHINSTBIN)/%
 
@@ -50,7 +50,7 @@ TOOLS = benthos_docs_gen
 tools: $(TOOLS)
 
 $(PATHINSTTOOLS)/%: $(SOURCE_FILES) $(TEMPLATE_FILES)
-	@go build $(GO_FLAGS) -tags "$(TAGS)" -ldflags "$(LD_FLAGS) $(VER_FLAGS)" -o $@ ./cmd/tools/$*
+	@go1.20rc3 build $(GO_FLAGS) -tags "$(TAGS)" -ldflags "$(LD_FLAGS) $(VER_FLAGS)" -o $@ ./cmd/tools/$*
 
 $(TOOLS): %: $(PATHINSTTOOLS)/%
 
@@ -82,25 +82,25 @@ docker-cgo:
 	@docker tag $(DOCKER_IMAGE):$(VER_CUT)-cgo $(DOCKER_IMAGE):latest-cgo
 
 fmt:
-	@go list -f {{.Dir}} ./... | xargs -I{} gofmt -w -s {}
-	@go list -f {{.Dir}} ./... | xargs -I{} goimports -w -local github.com/benthosdev/benthos/v4 {}
-	@go mod tidy
+	@go1.20rc3 list -f {{.Dir}} ./... | xargs -I{} gofmt -w -s {}
+	@go1.20rc3 list -f {{.Dir}} ./... | xargs -I{} goimports -w -local github.com/benthosdev/benthos/v4 {}
+	@go1.20rc3 mod tidy
 
 lint:
-	@go vet $(GO_FLAGS) ./...
+	@go1.20rc3 vet $(GO_FLAGS) ./...
 	@golangci-lint -j $(GOMAXPROCS) run --timeout 5m cmd/... internal/... public/...
 
 test: $(APPS)
-	@go test $(GO_FLAGS) -ldflags "$(LD_FLAGS)" -cover -timeout 3m ./...
+	@go1.20rc3 test $(GO_FLAGS) -ldflags "$(LD_FLAGS)" -cover -timeout 3m ./...
 	@$(PATHINSTBIN)/benthos template lint ./template/...
-	@$(PATHINSTBIN)/benthos test ./config/test/...
+	@GOCOVERDIR=. $(PATHINSTBIN)/benthos test ./config/test/...
 
 test-race: $(APPS)
-	@go test $(GO_FLAGS) -ldflags "$(LD_FLAGS)" -timeout 3m -race ./...
+	@go1.20rc3 test $(GO_FLAGS) -ldflags "$(LD_FLAGS)" -timeout 3m -race ./...
 
 test-integration:
 	$(warning WARNING! Running the integration tests in their entirety consumes a huge amount of computing resources and is likely to time out on most machines. It's recommended that you instead run the integration suite for connectors you are working selectively with `go test -run 'TestIntegration/kafka' ./...` and so on.)
-	@go test $(GO_FLAGS) -ldflags "$(LD_FLAGS)" -cover -run "^Test.*Integration.*$$" -timeout 5m ./...
+	@go1.20rc3 test $(GO_FLAGS) -ldflags "$(LD_FLAGS)" -cover -run "^Test.*Integration.*$$" -timeout 25m ./...
 
 clean:
 	rm -rf $(PATHINSTBIN)
