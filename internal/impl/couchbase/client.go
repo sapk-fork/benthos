@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/couchbase/gocb/v2"
 
@@ -14,28 +15,20 @@ import (
 // ErrInvalidTranscoder specified transcoder is not supported.
 var ErrInvalidTranscoder = errors.New("invalid transcoder")
 
+type config struct {
+	url, bucket, collection string
+	timeout                 time.Duration
+	opts                    gocb.ClusterOptions
+}
+
 type couchbaseClient struct {
+	config
 	collection *gocb.Collection
 	cluster    *gocb.Cluster
 }
 
-func getClient(conf *service.ParsedConfig, mgr *service.Resources) (*couchbaseClient, error) {
-
-	// retrieve params
-	url, err := conf.FieldString("url")
-	if err != nil {
-		return nil, err
-	}
-	bucket, err := conf.FieldString("bucket")
-	if err != nil {
-		return nil, err
-	}
-	timeout, err := conf.FieldDuration("timeout")
-	if err != nil {
-		return nil, err
-	}
-
-	// setup couchbase
+func generateCouchbaseOpts(username, password, transcoder string, timeout time.Duration) (gocb.ClusterOptions, error) {
+	// init couchbase opts
 	opts := gocb.ClusterOptions{
 		// TODO add opentracing Tracer:
 		// TODO add metrics Meter:
@@ -52,26 +45,14 @@ func getClient(conf *service.ParsedConfig, mgr *service.Resources) (*couchbaseCl
 		ManagementTimeout: timeout,
 	}
 
-	if conf.Contains("username") {
-		username, err := conf.FieldString("username")
-		if err != nil {
-			return nil, err
-		}
-		password, err := conf.FieldString("password")
-		if err != nil {
-			return nil, err
-		}
+	if username != "" {
 		opts.Authenticator = gocb.PasswordAuthenticator{
 			Username: username,
 			Password: password,
 		}
 	}
 
-	tr, err := conf.FieldString("transcoder")
-	if err != nil {
-		return nil, err
-	}
-	switch client.Transcoder(tr) {
+	switch client.Transcoder(transcoder) {
 	case client.TranscoderJSON:
 		opts.Transcoder = gocb.NewJSONTranscoder()
 	case client.TranscoderRaw:
@@ -83,38 +64,96 @@ func getClient(conf *service.ParsedConfig, mgr *service.Resources) (*couchbaseCl
 	case client.TranscoderLegacy:
 		opts.Transcoder = gocb.NewLegacyTranscoder()
 	default:
-		return nil, fmt.Errorf("%w: %s", ErrInvalidTranscoder, tr)
+		return opts, fmt.Errorf("%w: %s", ErrInvalidTranscoder, transcoder)
 	}
 
-	cluster, err := gocb.Connect(url, opts)
+	return opts, nil
+}
+
+func parseOptsConf(conf *service.ParsedConfig) (username, password, transcoder string, timeout time.Duration, err error) {
+	timeout, err = conf.FieldDuration("timeout")
 	if err != nil {
-		return nil, err
+		return
+	}
+
+	transcoder, err = conf.FieldString("transcoder")
+	if err != nil {
+		return
+	}
+
+	if conf.Contains("username") {
+		username, err = conf.FieldString("username")
+		if err != nil {
+			return
+		}
+		password, err = conf.FieldString("password")
+		if err != nil {
+			return
+		}
+	}
+
+	return
+}
+
+func parseClientConf(conf *service.ParsedConfig) (cfg config, err error) {
+	// retrieve params
+	cfg.url, err = conf.FieldString("url")
+	if err != nil {
+		return
+	}
+
+	cfg.bucket, err = conf.FieldString("bucket")
+	if err != nil {
+		return
+	}
+
+	if conf.Contains("collection") {
+		cfg.collection, err = conf.FieldString("collection")
+		if err != nil {
+			return
+		}
+	}
+
+	username, password, transcoder, timeout, err := parseOptsConf(conf)
+	if err != nil {
+		return
+	}
+	cfg.timeout = timeout
+
+	cfg.opts, err = generateCouchbaseOpts(username, password, transcoder, timeout)
+
+	return
+}
+
+func (clt *couchbaseClient) Connect(ctx context.Context) (err error) {
+	if clt.cluster != nil {
+		return nil // already connected
+	}
+
+	clt.cluster, err = gocb.Connect(clt.url, clt.opts)
+	if err != nil {
+		return err
 	}
 
 	// check that we can do query
-	err = cluster.Bucket(bucket).WaitUntilReady(timeout, nil)
+	err = clt.cluster.Bucket(clt.bucket).WaitUntilReady(clt.timeout, nil)
 	if err != nil {
-		return nil, err
-	}
-
-	proc := &couchbaseClient{
-		cluster: cluster,
+		return err
 	}
 
 	// retrieve collection
-	if conf.Contains("collection") {
-		collectionStr, err := conf.FieldString("collection")
-		if err != nil {
-			return nil, err
-		}
-		proc.collection = cluster.Bucket(bucket).Collection(collectionStr)
+	if clt.config.collection != "" {
+		clt.collection = clt.cluster.Bucket(clt.bucket).Collection(clt.config.collection)
 	} else {
-		proc.collection = cluster.Bucket(bucket).DefaultCollection()
+		clt.collection = clt.cluster.Bucket(clt.bucket).DefaultCollection()
 	}
 
-	return proc, nil
+	return
 }
 
-func (p *couchbaseClient) Close(ctx context.Context) error {
-	return p.cluster.Close(&gocb.ClusterCloseOptions{})
+func (clt *couchbaseClient) Close(ctx context.Context) error {
+	err := clt.cluster.Close(&gocb.ClusterCloseOptions{})
+	clt.cluster, clt.collection = nil, nil
+
+	return err
 }

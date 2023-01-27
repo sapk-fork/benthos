@@ -25,8 +25,8 @@ func CacheConfig() *service.ConfigSpec {
 
 func init() {
 	err := service.RegisterCache("couchbase", CacheConfig(),
-		func(conf *service.ParsedConfig, mgr *service.Resources) (service.Cache, error) {
-			return NewCache(conf, mgr)
+		func(conf *service.ParsedConfig, _ *service.Resources) (service.Cache, error) {
+			return NewCache(conf)
 		},
 	)
 	if err != nil {
@@ -44,8 +44,8 @@ type Cache struct {
 }
 
 // NewCache returns a Couchbase cache.
-func NewCache(conf *service.ParsedConfig, mgr *service.Resources) (*Cache, error) {
-	cl, err := getClient(conf, mgr)
+func NewCache(conf *service.ParsedConfig) (*Cache, error) {
+	clientCfg, err := parseClientConf(conf)
 	if err != nil {
 		return nil, err
 	}
@@ -59,10 +59,14 @@ func NewCache(conf *service.ParsedConfig, mgr *service.Resources) (*Cache, error
 		ttl = &ttlTmp
 	}
 
-	return &Cache{
-		couchbaseClient: cl,
+	c := &Cache{
+		couchbaseClient: &couchbaseClient{config: clientCfg},
 		ttl:             ttl,
-	}, nil
+	}
+
+	err = c.Connect(context.Background())
+
+	return c, err
 }
 
 // Get retrieve from cache.

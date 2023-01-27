@@ -41,8 +41,8 @@ func ProcessorConfig() *service.ConfigSpec {
 
 func init() {
 	err := service.RegisterBatchProcessor("couchbase", ProcessorConfig(),
-		func(conf *service.ParsedConfig, mgr *service.Resources) (service.BatchProcessor, error) {
-			return NewProcessor(conf, mgr)
+		func(conf *service.ParsedConfig, _ *service.Resources) (service.BatchProcessor, error) {
+			return NewProcessor(conf)
 		},
 	)
 	if err != nil {
@@ -62,13 +62,14 @@ type Processor struct {
 }
 
 // NewProcessor returns a Couchbase processor.
-func NewProcessor(conf *service.ParsedConfig, mgr *service.Resources) (*Processor, error) {
-	cl, err := getClient(conf, mgr)
+func NewProcessor(conf *service.ParsedConfig) (*Processor, error) {
+	clientCfg, err := parseClientConf(conf)
 	if err != nil {
 		return nil, err
 	}
+
 	p := &Processor{
-		couchbaseClient: cl,
+		couchbaseClient: &couchbaseClient{config: clientCfg},
 	}
 
 	if p.id, err = conf.FieldInterpolatedString("id"); err != nil {
@@ -109,12 +110,18 @@ func NewProcessor(conf *service.ParsedConfig, mgr *service.Resources) (*Processo
 		return nil, fmt.Errorf("%w: %s", ErrInvalidOperation, op)
 	}
 
-	return p, nil
+	err = p.Connect(context.Background())
+
+	return p, err
 }
 
 // ProcessBatch applies the processor to a message batch, either creating >0
 // resulting messages or a response to be sent back to the message source.
 func (p *Processor) ProcessBatch(ctx context.Context, inBatch service.MessageBatch) ([]service.MessageBatch, error) {
+	return p.batch(ctx, inBatch, false)
+}
+
+func (p *Processor) batch(ctx context.Context, inBatch service.MessageBatch, skipResult bool) ([]service.MessageBatch, error) {
 	newMsg := inBatch.Copy()
 	ops := make([]gocb.BulkOp, len(inBatch))
 
@@ -146,6 +153,10 @@ func (p *Processor) ProcessBatch(ctx context.Context, inBatch service.MessageBat
 	err := p.collection.Do(ops, &gocb.BulkOpOptions{})
 	if err != nil {
 		return nil, err
+	}
+
+	if skipResult {
+		return nil, nil
 	}
 
 	// set results
