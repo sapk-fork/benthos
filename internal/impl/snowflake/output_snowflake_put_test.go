@@ -53,7 +53,7 @@ func (MockUUIDGenerator) NewV4() (uuid.UUID, error) {
 }
 
 type MockHTTPClient struct {
-	SnowpipeHost string
+	Host         string
 	Queries      []string
 	QueriesCount int
 	Payloads     []string
@@ -61,7 +61,7 @@ type MockHTTPClient struct {
 }
 
 func (c *MockHTTPClient) Do(req *http.Request) (*http.Response, error) {
-	req.URL.Host = c.SnowpipeHost
+	req.URL.Host = c.Host
 	req.URL.Scheme = "http"
 
 	query := req.URL.Path
@@ -329,7 +329,7 @@ snowpipe: '` + tc.snowpipe + `'
 			t.Cleanup(snowpipeTestServer.Close)
 
 			mockHTTPClient := MockHTTPClient{
-				SnowpipeHost: snowpipeTestServer.Listener.Addr().String(),
+				Host: snowpipeTestServer.Listener.Addr().String(),
 			}
 			s.httpClient = &mockHTTPClient
 
