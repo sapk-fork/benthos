@@ -64,6 +64,29 @@ type OpenChannelResponse struct {
 	EncryptionKeyId int64              `json:"encryption_key_id"`
 }
 
+type RegisterBlobResponse struct {
+	StatusCode  ResponseStatusCode   `json:"status_code"`
+	Message     string               `json:"message"`
+	BlobsStatus []BlobRegisterStatus `json:"blobs"`
+}
+
+type BlobRegisterStatus struct {
+	ChunksStatus []ChunkRegisterStatus `json:"chunks"`
+}
+
+type ChunkRegisterStatus struct {
+	ChannelsStatus []ChannelRegisterStatus `json:"channels"`
+	Database       string                  `json:"database"`
+	Schema         string                  `json:"schema"`
+	Table          string                  `json:"table"`
+}
+
+type ChannelRegisterStatus struct {
+	StatusCode       ResponseStatusCode `json:"status_code"`
+	Channel          string             `json:"channel"`
+	ChannelSequencer int64              `json:"client_sequencer"`
+}
+
 // TODO add https://github.com/snowflakedb/snowflake-ingest-java/blob/37bd7bcb6c095a8b07d9bfdaacdf24369f5458f0/src/main/java/net/snowflake/ingest/streaming/internal/RegisterBlobResponse.java
 // TODO add https://github.com/snowflakedb/snowflake-ingest-java/blob/37bd7bcb6c095a8b07d9bfdaacdf24369f5458f0/src/main/java/net/snowflake/ingest/streaming/internal/ChannelsStatusResponse.java
 
@@ -131,7 +154,8 @@ type streamI interface {
 }
 
 type snowflakeStream struct {
-	*OpenChannelResponse
+	setup  *OpenChannelResponse
+	writer *snowflakeStreamWriter // not ideal
 	// TODO on error
 	// TODO default timezone
 }
@@ -141,6 +165,14 @@ func (s *snowflakeStream) Close(ctx context.Context) error {
 }
 
 func (s *snowflakeStream) InsertRows(ctx context.Context, rows []any) error {
+	/*
+		response := new(OpenChannelResponse)
+
+		err := s.writer.callEndpoint(ctx, EndpointRegisterBlob, rows, response)
+		if err != nil {
+			return fmt.Errorf("failed to send rows to snowflake: %s", err)
+		}
+	*/
 	return nil
 }
 
@@ -269,11 +301,17 @@ func (s *snowflakeStreamWriter) Connect(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to snowflake: %s", err)
 	}
+	if response.StatusCode != ResponseStatusCodeSuccess {
+		return fmt.Errorf("received unexpected stream response code: %d", response.StatusCode)
+	}
 
 	s.logger.Debugf("channel opened: %#v", response)
 
 	// store in  s.stream
-	s.stream = &snowflakeStream{response}
+	s.stream = &snowflakeStream{
+		writer: s,
+		setup:  response,
+	}
 
 	return nil
 }
@@ -287,7 +325,7 @@ func (s *snowflakeStreamWriter) getStreamURL(endpoint string) string {
 	return u.String()
 }
 
-func (s *snowflakeStreamWriter) callEndpoint(ctx context.Context, endpoint string, payload any, response *OpenChannelResponse) error {
+func (s *snowflakeStreamWriter) callEndpoint(ctx context.Context, endpoint string, payload, response any) error {
 	jwtToken, err := s.createJWT()
 	if err != nil {
 		return fmt.Errorf("failed to create Snowpipe JWT token: %s", err)
@@ -317,9 +355,6 @@ func (s *snowflakeStreamWriter) callEndpoint(ctx context.Context, endpoint strin
 
 	if err = json.NewDecoder(resp.Body).Decode(response); err != nil {
 		return fmt.Errorf("failed to decode stream HTTP response: %s", err)
-	}
-	if response.StatusCode != ResponseStatusCodeSuccess {
-		return fmt.Errorf("received unexpected stream response code: %d", response.StatusCode)
 	}
 
 	return nil
