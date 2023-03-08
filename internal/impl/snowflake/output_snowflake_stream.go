@@ -127,7 +127,7 @@ func snowflakeStreamOutputConfig() *service.ConfigSpec {
 }
 
 func init() {
-	err := service.RegisterBatchOutput("snowflake_stream", snowflakePutOutputConfig(),
+	err := service.RegisterBatchOutput("snowflake_stream", snowflakeStreamOutputConfig(),
 		func(conf *service.ParsedConfig, mgr *service.Resources) (
 			output service.BatchOutput,
 			batchPolicy service.BatchPolicy,
@@ -140,7 +140,7 @@ func init() {
 			if batchPolicy, err = conf.FieldBatchPolicy("batching"); err != nil {
 				return
 			}
-			output, err = newSnowflakeWriterFromConfig(conf, mgr)
+			output, err = newSnowflakeStreamWriterFromConfig(conf, mgr)
 			return
 		})
 	if err != nil {
@@ -166,7 +166,7 @@ func (s *snowflakeStream) Close(ctx context.Context) error {
 
 func (s *snowflakeStream) InsertRows(ctx context.Context, rows []any) error {
 	/*
-		response := new(OpenChannelResponse)
+		response := new(RegisterBlobResponse)
 
 		err := s.writer.callEndpoint(ctx, EndpointRegisterBlob, rows, response)
 		if err != nil {
