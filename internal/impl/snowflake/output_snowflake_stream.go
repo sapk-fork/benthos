@@ -8,8 +8,10 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/gofrs/uuid"
@@ -31,9 +33,10 @@ const (
 	WriteModeRESTAPI      WriteMode = "REST_API"
 
 	// Endpoints
-	EndpointChannelStatus = "/v1/streaming/channels/status/"
-	EndpointOpenChannel   = "/v1/streaming/channels/open/"
-	EndpointRegisterBlob  = "/v1/streaming/channels/write/blobs/"
+	EndpointClientConfigure = "/v1/streaming/client/configure/"
+	EndpointChannelStatus   = "/v1/streaming/channels/status/"
+	EndpointOpenChannel     = "/v1/streaming/channels/open/"
+	EndpointRegisterBlob    = "/v1/streaming/channels/write/blobs/"
 )
 
 type ColumnMetadata struct {
@@ -47,6 +50,26 @@ type ColumnMetadata struct {
 	ByteLength   int    `json:"byte_length"`
 	Length       int    `json:"length"`
 	Nullable     bool   `json:"nullable"`
+}
+
+type ClientConfigureResponse struct {
+	StatusCode    ResponseStatusCode `json:"status_code"`
+	Message       string             `json:"message"`
+	Prefix        string             `json:"prefix"`
+	DeploymentID  int64              `json:"deployment_id"`
+	StageLocation StageLocation      `json:"stage_location"`
+}
+
+type StageLocation struct {
+	Credentials           map[string]string `json:"creds"`                 // TODO
+	Endpoint              string            `json:"endPoint"`              // TODO
+	IsClientSideEncrypted bool              `json:"isClientSideEncrypted"` // TODO
+	Location              string            `json:"location"`              // TODO
+	LocationType          string            `json:"locationType"`          // TODO
+	Path                  string            `json:"path"`                  // TODO
+	PresignedUrl          string            `json:"presignedUrl"`          // TODO
+	Region                string            `json:"region"`                // TODO
+	StorageAccount        string            `json:"storageAccount"`        // TODO
 }
 
 type OpenChannelResponse struct {
@@ -115,7 +138,7 @@ func snowflakeStreamOutputConfig() *service.ConfigSpec {
 		Field(service.NewStringField("user").Description("Username.")).
 		Field(service.NewStringField("private_key_file").Description("The path to a file containing the private SSH key.")).
 		Field(service.NewStringField("private_key_pass").Description("An optional private SSH key passphrase.").Optional().Secret()).
-		Field(service.NewStringField("role").Description("Role.")).
+		Field(service.NewStringField("role").Description("Role.").Default("DEFAULT_ROLE")).
 		Field(service.NewStringField("database").Description("Database.")).
 		Field(service.NewStringField("schema").Description("Schema.")).
 		Field(service.NewStringField("table").Description("Table.")).
@@ -192,6 +215,7 @@ type snowflakeStreamWriter struct {
 	publicKeyFingerprint string
 
 	connMut       sync.Mutex
+	callCounter   atomic.Int64
 	nowFn         func() time.Time
 	uuidGenerator uuidGenI
 	httpClient    httpClientI
@@ -205,6 +229,8 @@ func newSnowflakeStreamWriterFromConfig(conf *service.ParsedConfig, mgr *service
 		httpClient:    http.DefaultClient,
 		nowFn:         time.Now,
 	}
+
+	s.callCounter.Store(-1) // return zero at first add
 
 	var err error
 
@@ -280,13 +306,27 @@ func newSnowflakeStreamWriterFromConfig(conf *service.ParsedConfig, mgr *service
 //------------------------------------------------------------------------------
 
 func (s *snowflakeStreamWriter) Connect(ctx context.Context) error {
-	uuid, err := s.uuidGenerator.NewV4()
+	responseConfigure := new(ClientConfigureResponse)
+	time.Sleep(time.Second) // TODO prevent multiple successive calls for debug
+
+	err := s.callEndpoint(ctx, EndpointClientConfigure, map[string]string{
+		"role": s.role,
+	}, responseConfigure)
 	if err != nil {
-		return fmt.Errorf("failed to generate requestID: %s", err)
+		return fmt.Errorf("failed to configure client: %s", err)
+	}
+	if responseConfigure.StatusCode != ResponseStatusCodeSuccess {
+		return fmt.Errorf("received unexpected stream response code: %d", responseConfigure.StatusCode)
 	}
 
+	s.logger.Debugf("client configured: %#v", responseConfigure)
+
 	payload := map[string]string{
-		"request_id": uuid.String(),
+		"request_id": strings.Join([]string{
+			responseConfigure.Prefix,
+			strconv.Itoa(int(responseConfigure.DeploymentID)),
+			strconv.Itoa(int(s.callCounter.Add(1)))},
+			"_"),
 		"channel":    s.channel,
 		"table":      s.table,
 		"database":   s.database,
@@ -295,22 +335,24 @@ func (s *snowflakeStreamWriter) Connect(ctx context.Context) error {
 		"role":       s.role,
 	}
 
-	response := new(OpenChannelResponse)
+	responseOpen := new(OpenChannelResponse)
 
-	err = s.callEndpoint(ctx, EndpointOpenChannel, payload, response)
+	time.Sleep(time.Second) // TODO prevent multiple successive calls for debug
+
+	err = s.callEndpoint(ctx, EndpointOpenChannel, payload, responseOpen)
 	if err != nil {
 		return fmt.Errorf("failed to connect to snowflake: %s", err)
 	}
-	if response.StatusCode != ResponseStatusCodeSuccess {
-		return fmt.Errorf("received unexpected stream response code: %d", response.StatusCode)
+	if responseOpen.StatusCode != ResponseStatusCodeSuccess {
+		return fmt.Errorf("received unexpected stream response code: %d", responseOpen.StatusCode)
 	}
 
-	s.logger.Debugf("channel opened: %#v", response)
+	s.logger.Debugf("channel opened: %#v", responseOpen)
 
 	// store in  s.stream
 	s.stream = &snowflakeStream{
 		writer: s,
-		setup:  response,
+		setup:  responseOpen,
 	}
 
 	return nil
@@ -340,8 +382,11 @@ func (s *snowflakeStreamWriter) callEndpoint(ctx context.Context, endpoint strin
 	if err != nil {
 		return fmt.Errorf("failed to create stream HTTP request: %s", err)
 	}
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Accept-Encoding", "gzip,deflate")
+	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
 	req.Header.Set("Authorization", "Bearer "+jwtToken)
+	req.Header.Set("X-Snowflake-Authorization-Token-Type", "KEYPAIR_JWT")
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
