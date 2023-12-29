@@ -309,7 +309,7 @@ operation: 'get'
 	assert.Len(t, msgOut[0], 1)
 
 	// message should contain an error.
-	assert.Error(t, msgOut[0][0].GetError(), "TODO")
+	assert.Error(t, msgOut[0][0].GetError())
 
 	// message content should stay the same.
 	dataOut, err := msgOut[0][0].AsBytes()

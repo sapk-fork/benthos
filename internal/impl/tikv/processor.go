@@ -110,7 +110,11 @@ func (p *Processor) ProcessBatch(ctx context.Context, inBatch service.MessageBat
 		}
 		// set results (out is alas filled in case of no error)
 		for index, part := range newMsg {
-			part.SetBytes(out[index])
+			if len(out[index]) == 0 {
+				part.SetError(service.ErrKeyNotFound)
+			} else {
+				part.SetBytes(out[index])
+			}
 		}
 	case client.OperationDelete:
 		err := p.client.BatchDelete(ctx, keys)
