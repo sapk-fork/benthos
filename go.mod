@@ -100,6 +100,7 @@ require (
 	github.com/sourcegraph/conc v0.3.0
 	github.com/stretchr/testify v1.8.4
 	github.com/tetratelabs/wazero v1.5.0
+	github.com/tikv/client-go/v2 v2.0.7
 	github.com/tilinna/z85 v1.0.0
 	github.com/trinodb/trino-go-client v0.313.0
 	github.com/twmb/franz-go v1.15.2
@@ -172,16 +173,21 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.37.0 // indirect
 	github.com/aws/smithy-go v1.13.5 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
+	github.com/benbjohnson/clock v1.3.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.4.0 // indirect
 	github.com/bufbuild/protocompile v0.6.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/cockroachdb/apd/v3 v3.2.0 // indirect
 	github.com/containerd/continuity v0.3.0 // indirect
+	github.com/coreos/go-semver v0.3.0 // indirect
+	github.com/coreos/go-systemd/v22 v22.3.2 // indirect
 	github.com/couchbase/gocbcore/v10 v10.2.9 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
+	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548 // indirect
 	github.com/danieljoos/wincred v1.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dlclark/regexp2 v1.7.0 // indirect
 	github.com/docker/cli v20.10.17+incompatible // indirect
@@ -192,6 +198,7 @@ require (
 	github.com/eapache/go-resiliency v1.4.0 // indirect
 	github.com/eapache/go-xerial-snappy v0.0.0-20230731223053-c322873962e3 // indirect
 	github.com/eapache/queue v1.1.0 // indirect
+	github.com/elastic/gosigar v0.14.2 // indirect
 	github.com/felixge/httpsnoop v1.0.3 // indirect
 	github.com/form3tech-oss/jwt-go v3.2.5+incompatible // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
@@ -209,6 +216,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
+	github.com/google/btree v1.1.2 // indirect
 	github.com/google/flatbuffers v23.5.26+incompatible // indirect
 	github.com/google/s2a-go v0.1.7 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
@@ -217,6 +225,7 @@ require (
 	github.com/googleapis/gax-go/v2 v2.12.0 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/gosimple/unidecode v1.0.1 // indirect
+	github.com/grpc-ecosystem/go-grpc-middleware v1.1.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.16.0 // indirect
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
@@ -256,9 +265,14 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0-rc4 // indirect
 	github.com/opencontainers/runc v1.1.5 // indirect
+	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/oschwald/maxminddb-golang v1.11.0 // indirect
 	github.com/paulmach/orb v0.10.0 // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
+	github.com/pingcap/errors v0.11.5-0.20211224045212-9687c2b0f87c // indirect
+	github.com/pingcap/failpoint v0.0.0-20220801062533-2eaa32854a6c // indirect
+	github.com/pingcap/kvproto v0.0.0-20230403051650-e166ae588106 // indirect
+	github.com/pingcap/log v1.1.1-0.20221110025148-ca232912c9f3 // indirect
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
@@ -273,6 +287,9 @@ require (
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/stretchr/objx v0.5.0 // indirect
+	github.com/tiancaiamao/gp v0.0.0-20221230034425-4025bc8a4d4a // indirect
+	github.com/tikv/pd/client v0.0.0-20230329114254-1948c247c2b1 // indirect
+	github.com/twmb/murmur3 v1.1.3 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
@@ -282,10 +299,14 @@ require (
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
+	go.etcd.io/etcd/api/v3 v3.5.2 // indirect
+	go.etcd.io/etcd/client/pkg/v3 v3.5.2 // indirect
+	go.etcd.io/etcd/client/v3 v3.5.2 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/otel/metric v1.21.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.0.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
+	go.uber.org/zap v1.25.0 // indirect
 	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/sys v0.14.0 // indirect
 	golang.org/x/term v0.14.0 // indirect
