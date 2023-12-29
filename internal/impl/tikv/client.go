@@ -3,6 +3,7 @@ package tikv
 import (
 	"context"
 
+	"github.com/tikv/client-go/v2/config"
 	"github.com/tikv/client-go/v2/rawkv"
 
 	"github.com/benthosdev/benthos/v4/public/service"
@@ -19,10 +20,12 @@ func getClient(ctx context.Context, conf *service.ParsedConfig, mgr *service.Res
 		return nil, err
 	}
 
-	client, err := rawkv.NewClientWithOpts(ctx, addressList)
+	client, err := rawkv.NewClient(ctx, addressList, config.DefaultConfig().Security)
 	if err != nil {
 		return nil, err
 	}
+
+	client.SetAtomicForCAS(true)
 
 	return &tikvClient{
 		client: client,

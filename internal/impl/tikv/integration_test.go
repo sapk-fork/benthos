@@ -8,6 +8,7 @@ import (
 	"os"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
@@ -125,6 +126,8 @@ func setupTiKV(tb testing.TB) (*dockertest.Pool, *dockertest.Resource, *dockerte
 	}); err != nil {
 		log.Fatalf("Could not connect to tikv: %s", err)
 	}
+
+	time.Sleep(time.Second)
 
 	tb.Log("tikv cluster ready")
 

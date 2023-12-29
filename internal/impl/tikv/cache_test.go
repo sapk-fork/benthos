@@ -22,7 +22,7 @@ cache_resources:
 	suite := integration.CacheTests(
 		integration.CacheTestOpenClose(),
 		integration.CacheTestMissingKey(),
-		//TODO integration.CacheTestDoubleAdd(),
+		integration.CacheTestDoubleAdd(),
 		integration.CacheTestDelete(),
 		integration.CacheTestGetAndSet(50),
 	)
