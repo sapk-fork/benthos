@@ -2,7 +2,6 @@ package tikv
 
 import (
 	"context"
-	"log"
 	"time"
 
 	tikverr "github.com/tikv/client-go/v2/error"
@@ -67,8 +66,6 @@ func NewCache(conf *service.ParsedConfig, mgr *service.Resources) (*Cache, error
 
 // Get retrieve from cache.
 func (c *Cache) Get(ctx context.Context, key string) (data []byte, err error) {
-	log.Printf("Get(%q)", key)
-
 	out, err := c.client.Get(ctx, []byte(key))
 	if err != nil {
 		if tikverr.IsErrNotFound(err) {
@@ -85,8 +82,6 @@ func (c *Cache) Get(ctx context.Context, key string) (data []byte, err error) {
 
 // Set update cache.
 func (c *Cache) Set(ctx context.Context, key string, value []byte, ttl *time.Duration) error {
-	log.Printf("Set(%q, %q, %s)", key, string(value), ttl)
-
 	if ttl == nil {
 		ttl = c.ttl // load default ttl
 	}
@@ -101,9 +96,7 @@ func (c *Cache) Set(ctx context.Context, key string, value []byte, ttl *time.Dur
 // Add insert into cache.
 func (c *Cache) Add(ctx context.Context, key string, value []byte, ttl *time.Duration) error {
 	// TODO ttl is not yet supported b SDK with CompareAndSwap but TiKV support it.
-	log.Printf("Add(%q, %q, %s)", key, string(value), ttl)
-	prev, succeed, err := c.client.CompareAndSwap(ctx, []byte(key), nil, value)
-	log.Printf("Add/result(%q): %v %s %s", key, succeed, string(prev), err)
+	_, succeed, err := c.client.CompareAndSwap(ctx, []byte(key), nil, value)
 	if err != nil {
 		return err
 	}
@@ -116,7 +109,5 @@ func (c *Cache) Add(ctx context.Context, key string, value []byte, ttl *time.Dur
 
 // Delete remove from cache.
 func (c *Cache) Delete(ctx context.Context, key string) error {
-	log.Printf("Delete(%q)", key)
-
 	return c.client.Delete(ctx, []byte(key))
 }
