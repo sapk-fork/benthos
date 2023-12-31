@@ -13,7 +13,7 @@ type tikvClient struct {
 	client *rawkv.Client
 }
 
-func getClient(ctx context.Context, conf *service.ParsedConfig, mgr *service.Resources) (*tikvClient, error) {
+func getClient(ctx context.Context, conf *service.ParsedConfig) (*tikvClient, error) {
 	// retrieve params
 	addressList, err := conf.FieldStringList("address")
 	if err != nil {

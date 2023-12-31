@@ -62,7 +62,7 @@ func setupCouchbase(tb testing.TB) (*dockertest.Pool, *dockertest.Resource, erro
 
 	resource, err := pool.RunWithOptions(&dockertest.RunOptions{
 		Repository: "couchbase",
-		Tag:        "latest",
+		Tag:        "7.0.5",
 		Cmd:        []string{"/opt/couchbase/configure-server.sh"},
 		Env: []string{
 			"CLUSTER_NAME=couchbase",

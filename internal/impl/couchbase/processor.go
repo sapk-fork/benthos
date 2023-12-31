@@ -42,7 +42,7 @@ func ProcessorConfig() *service.ConfigSpec {
 func init() {
 	err := service.RegisterBatchProcessor("couchbase", ProcessorConfig(),
 		func(conf *service.ParsedConfig, mgr *service.Resources) (service.BatchProcessor, error) {
-			return NewProcessor(conf, mgr)
+			return NewProcessor(conf)
 		},
 	)
 	if err != nil {
@@ -62,8 +62,8 @@ type Processor struct {
 }
 
 // NewProcessor returns a Couchbase processor.
-func NewProcessor(conf *service.ParsedConfig, mgr *service.Resources) (*Processor, error) {
-	cl, err := getClient(conf, mgr)
+func NewProcessor(conf *service.ParsedConfig) (*Processor, error) {
+	cl, err := getClient(conf)
 	if err != nil {
 		return nil, err
 	}

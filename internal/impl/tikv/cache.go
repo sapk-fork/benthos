@@ -25,7 +25,7 @@ func CacheConfig() *service.ConfigSpec {
 func init() {
 	err := service.RegisterCache("tikv", CacheConfig(),
 		func(conf *service.ParsedConfig, mgr *service.Resources) (service.Cache, error) {
-			return NewCache(conf, mgr)
+			return NewCache(conf)
 		},
 	)
 	if err != nil {
@@ -43,8 +43,8 @@ type Cache struct {
 }
 
 // NewCache returns a Couchbase cache.
-func NewCache(conf *service.ParsedConfig, mgr *service.Resources) (*Cache, error) {
-	cl, err := getClient(context.TODO(), conf, mgr)
+func NewCache(conf *service.ParsedConfig) (*Cache, error) {
+	cl, err := getClient(context.TODO(), conf)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +95,7 @@ func (c *Cache) Set(ctx context.Context, key string, value []byte, ttl *time.Dur
 
 // Add insert into cache.
 func (c *Cache) Add(ctx context.Context, key string, value []byte, ttl *time.Duration) error {
-	// TODO ttl is not yet supported b SDK with CompareAndSwap but TiKV support it.
+	// TODO ttl is not yet supported by SDK with CompareAndSwap but TiKV support it.
 	_, succeed, err := c.client.CompareAndSwap(ctx, []byte(key), nil, value)
 	if err != nil {
 		return err

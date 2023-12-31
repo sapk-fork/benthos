@@ -79,7 +79,7 @@ tikv:
 	}
 }
 
-func TestIntegrationTiKVProcessor(t *testing.T) {
+func TestIntegrationProcessor(t *testing.T) {
 	integration.CheckSkip(t)
 
 	servicePort := requireTiKV(t)
@@ -108,6 +108,7 @@ func TestIntegrationTiKVProcessor(t *testing.T) {
 		testTiKVProcessorGet(uid, payload, servicePort, t)
 	})
 }
+
 func getProc(tb testing.TB, config string) *tikv.Processor {
 	tb.Helper()
 
@@ -116,7 +117,7 @@ func getProc(tb testing.TB, config string) *tikv.Processor {
 
 	pConf, err := confSpec.ParseYAML(config, env)
 	require.NoError(tb, err)
-	proc, err := tikv.NewProcessor(pConf, service.MockResources())
+	proc, err := tikv.NewProcessor(pConf)
 	require.NoError(tb, err)
 	require.NotNil(tb, proc)
 
@@ -217,4 +218,59 @@ operation: 'get'
 	dataOut, err := msgOut[0][0].AsBytes()
 	assert.NoError(t, err)
 	assert.Equal(t, uid, string(dataOut))
+}
+
+func BenchmarkIntegrationTiKVProcessor(b *testing.B) {
+	servicePort := requireTiKV(b)
+
+	b.Run("put", func(b *testing.B) {
+		config := fmt.Sprintf(`
+address:
+- 'localhost:%s'
+id: '${! json("id") }'
+content: 'root = this'
+operation: 'put'
+`, servicePort)
+
+		process := getProc(b, config)
+
+		batch := service.MessageBatch{}
+
+		for n := 0; n < b.N; n++ {
+			uid := faker.UUIDHyphenated()
+			payload := fmt.Sprintf(`{"id": %q, "data": %q}`, uid, faker.Sentence())
+
+			batch = append(batch, service.NewMessage([]byte(payload)))
+		}
+
+		b.ResetTimer()
+
+		_, err := process.ProcessBatch(context.Background(), batch)
+		require.NoError(b, err)
+	})
+
+	b.Run("get", func(b *testing.B) {
+		config := fmt.Sprintf(`
+address:
+- 'localhost:%s'
+id: '${! json("id") }'
+operation: 'get'
+`, servicePort)
+
+		process := getProc(b, config)
+
+		batch := service.MessageBatch{}
+
+		for n := 0; n < b.N; n++ {
+			uid := faker.UUIDHyphenated()
+			payload := fmt.Sprintf(`{"id": %q, "data": %q}`, uid, faker.Sentence())
+
+			batch = append(batch, service.NewMessage([]byte(payload)))
+		}
+
+		b.ResetTimer()
+
+		_, err := process.ProcessBatch(context.Background(), batch)
+		require.NoError(b, err)
+	})
 }
