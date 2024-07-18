@@ -196,6 +196,11 @@ operation: 'insert'
 	assert.Len(t, msgOut, 1)
 	assert.Len(t, msgOut[0], 1)
 
+	// check CAS
+	cas, ok := msgOut[0][0].MetaGetMut(couchbase.MetaCASKey)
+	assert.True(t, ok)
+	assert.NotEmpty(t, cas)
+
 	// message content should stay the same.
 	dataOut, err := msgOut[0][0].AsBytes()
 	assert.NoError(t, err)
@@ -221,6 +226,11 @@ operation: 'upsert'
 	assert.NoError(t, err)
 	assert.Len(t, msgOut, 1)
 	assert.Len(t, msgOut[0], 1)
+
+	// check CAS
+	cas, ok := msgOut[0][0].MetaGetMut(couchbase.MetaCASKey)
+	assert.True(t, ok)
+	assert.NotEmpty(t, cas)
 
 	// message content should stay the same.
 	dataOut, err := msgOut[0][0].AsBytes()
@@ -248,6 +258,11 @@ operation: 'replace'
 	assert.Len(t, msgOut, 1)
 	assert.Len(t, msgOut[0], 1)
 
+	// check CAS
+	cas, ok := msgOut[0][0].MetaGetMut(couchbase.MetaCASKey)
+	assert.True(t, ok)
+	assert.NotEmpty(t, cas)
+
 	// message content should stay the same.
 	dataOut, err := msgOut[0][0].AsBytes()
 	assert.NoError(t, err)
@@ -273,6 +288,11 @@ operation: 'get'
 	assert.Len(t, msgOut, 1)
 	assert.Len(t, msgOut[0], 1)
 
+	// check CAS
+	cas, ok := msgOut[0][0].MetaGetMut(couchbase.MetaCASKey)
+	assert.True(t, ok)
+	assert.NotEmpty(t, cas)
+
 	// message should contain expected payload.
 	dataOut, err := msgOut[0][0].AsBytes()
 	assert.NoError(t, err)
@@ -297,6 +317,11 @@ operation: 'remove'
 	assert.NoError(t, err)
 	assert.Len(t, msgOut, 1)
 	assert.Len(t, msgOut[0], 1)
+
+	// check CAS
+	cas, ok := msgOut[0][0].MetaGetMut(couchbase.MetaCASKey)
+	assert.True(t, ok)
+	assert.NotEmpty(t, cas)
 
 	// message content should stay the same.
 	dataOut, err := msgOut[0][0].AsBytes()
