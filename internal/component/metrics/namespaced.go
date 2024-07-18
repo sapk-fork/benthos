@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"maps"
 	"net/http"
 	"sort"
 )
@@ -235,6 +236,53 @@ func (n *Namespaced) GetGaugeVec(path string, labelNames ...string) StatGaugeVec
 		}
 	}
 	return n.child.GetGaugeVec(path, labelNames...)
+}
+
+// GetGaugeFunc returns an gauge stat for a given path.
+// The value reported is determined by calling the given function.
+// Take into account that metric collection may happen concurrently.
+// Therefore, it must be safe to call the provided function concurrently.
+func (n *Namespaced) GetGaugeFunc(path string, f func() int64) {
+	path, labelKeys, labelValues := n.getPathAndLabels(path)
+	if path == "" {
+		return
+	}
+	if len(labelKeys) > 0 {
+		newLabels := make(map[string]string)
+		for i, k := range labelKeys {
+			newLabels[k] = labelValues[i]
+		}
+		n.child.GetGaugeFuncVec(path, f, newLabels)
+
+		return
+	}
+
+	n.child.GetGaugeFunc(path, f)
+}
+
+// GetGaugeFuncVec returns an gauge stat for a given path with fixed labels
+// The value reported is determined by calling the given function.
+// Take into account that metric collection may happen concurrently.
+// Therefore, it must be safe to call the provided function concurrently.
+func (n *Namespaced) GetGaugeFuncVec(path string, f func() int64, labels map[string]string) {
+	path, staticKeys, staticValues := n.getPathAndLabels(path)
+	if path == "" {
+		return
+	}
+	if len(staticKeys) > 0 {
+		newLabels := make(map[string]string)
+		for i, k := range staticKeys {
+			newLabels[k] = staticValues[i]
+		}
+
+		maps.Copy(newLabels, labels)
+
+		n.child.GetGaugeFuncVec(path, f, newLabels)
+
+		return
+	}
+
+	n.child.GetGaugeFuncVec(path, f, labels)
 }
 
 // Close stops aggregating stats and cleans up resources.

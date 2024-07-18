@@ -80,6 +80,18 @@ type Type interface {
 	// same path.
 	GetGaugeVec(path string, labelNames ...string) StatGaugeVec
 
+	// GetGaugeFunc returns an gauge stat for a given path.
+	// The value reported is determined by calling the given function.
+	// Take into account that metric collection may happen concurrently.
+	// Therefore, it must be safe to call the provided function concurrently.
+	GetGaugeFunc(path string, function func() int64)
+
+	// GetGaugeFuncVec returns an gauge stat for a given path with fixed labels
+	// The value reported is determined by calling the given function.
+	// Take into account that metric collection may happen concurrently.
+	// Therefore, it must be safe to call the provided function concurrently.
+	GetGaugeFuncVec(path string, function func() int64, labels map[string]string)
+
 	// HandlerFunc returns an optional HTTP request handler that exposes metrics
 	// from the implementation. If nil is returned then no endpoint will be
 	// registered.

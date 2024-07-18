@@ -55,6 +55,16 @@ func (d DudType) GetGauge(path string) StatGauge {
 	return DudStat{}
 }
 
+// GetGaugeFunc does nothing.
+func (d DudType) GetGaugeFunc(path string, _ func() int64) {
+	return
+}
+
+// GetGaugeFuncVec does nothing.
+func (d DudType) GetGaugeFuncVec(path string, _ func() int64, labels map[string]string) {
+	return
+}
+
 // HandlerFunc returns nil.
 func (d DudType) HandlerFunc() http.HandlerFunc {
 	return nil

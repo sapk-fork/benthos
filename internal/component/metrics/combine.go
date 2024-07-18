@@ -163,6 +163,16 @@ func (c *combinedWrapper) GetGaugeVec(path string, n ...string) StatGaugeVec {
 	}
 }
 
+func (c *combinedWrapper) GetGaugeFunc(path string, f func() int64) {
+	c.t1.GetGaugeFunc(path, f)
+	c.t2.GetGaugeFunc(path, f)
+}
+
+func (c *combinedWrapper) GetGaugeFuncVec(path string, f func() int64, labels map[string]string) {
+	c.t1.GetGaugeFuncVec(path, f, labels)
+	c.t2.GetGaugeFuncVec(path, f, labels)
+}
+
 func (c *combinedWrapper) HandlerFunc() http.HandlerFunc {
 	if h := c.t1.HandlerFunc(); h != nil {
 		return h

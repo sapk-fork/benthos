@@ -40,6 +40,9 @@ func MetricsForCache(c V1, stats metrics.Type) V1 {
 	cacheError := stats.GetCounterVec("cache_error", "operation")
 	cacheLatency := stats.GetTimerVec("cache_latency_ns", "operation")
 
+	// check if as interface Size() int64
+	stats.GetGaugeFunc("cache_items", func() int64 { return 0 })
+
 	return &metricsCache{
 		c: c, sig: shutdown.NewSignaller(),
 

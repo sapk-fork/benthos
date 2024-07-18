@@ -384,6 +384,27 @@ func (p *prometheusMetrics) GetGaugeVec(path string, labelNames ...string) metri
 	return pv
 }
 
+func (p *prometheusMetrics) GetGaugeFunc(path string, f func() int64) {
+	p.GetGaugeFuncVec(path, f)
+}
+
+func (p *prometheusMetrics) GetGaugeFuncVec(path string, f func() int64, labelNames ...string) {
+	if !model.IsValidMetricName(model.LabelValue(path)) {
+		p.log.Errorf("Ignoring metric '%v' due to invalid name", path)
+	}
+
+	p.mut.Lock()
+	var exists bool
+	if _, exists = p.gauges[path]; !exists {
+		ctr := prometheus.NewGaugeFunc(prometheus.GaugeOpts{
+			Name:        path,
+			Help:        "Benthos Gauge metric",
+			ConstLabels: make(prometheus.Labels),
+		}, labelNames)
+		p.reg.MustRegister(ctr)
+	}
+}
+
 func (p *prometheusMetrics) Close() error {
 	if atomic.CompareAndSwapInt32(&p.running, 1, 0) {
 		close(p.closedChan)
